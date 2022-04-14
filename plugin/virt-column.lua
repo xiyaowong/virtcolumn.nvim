@@ -95,6 +95,8 @@ local function refresh(args)
         if need_refresh then
             _refresh()
         end
+    else
+        _refresh()
     end
 end
 
