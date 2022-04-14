@@ -122,13 +122,18 @@ end
 set_hl()
 
 local group = api.nvim_create_augroup("virtcolumn", {})
-api.nvim_create_autocmd(
-    { "WinScrolled", "TextChanged", "TextChangedI", "BufWinEnter", "InsertLeave", "FileChangedShellPost" },
-    {
-        group = group,
-        callback = refresh,
-    }
-)
+api.nvim_create_autocmd({
+    "WinScrolled",
+    "TextChanged",
+    "TextChangedI",
+    "BufWinEnter",
+    "InsertLeave",
+    "InsertEnter",
+    "FileChangedShellPost",
+}, {
+    group = group,
+    callback = refresh,
+})
 api.nvim_create_autocmd("OptionSet", { group = group, callback = refresh, pattern = "colorcolumn" })
 api.nvim_create_autocmd("ColorScheme", { group = group, callback = set_hl })
 
