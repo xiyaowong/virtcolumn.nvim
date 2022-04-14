@@ -1,5 +1,3 @@
---- vim.g.virtcolumn: equal to global colorcolumn
---- vim.b.virtcolumn: equal to local colorcolumn
 --- vim.g.virtcolumn_char: ▕ by default
 
 local api = vim.api
@@ -18,25 +16,38 @@ local function _refresh()
         return
     end
 
-    local textwidth = vim.opt.textwidth:get()
-    local virtcolumns = vim.split(vim.b.virtcolumn or vim.g.virtcolumn or vim.o.cc, ",")
+    local virtcolumn = vim.b.virtcolumn or vim.w.virtcolumn
+
+    local local_cc = vim.wo.cc
+    if not virtcolumn or local_cc ~= "" then
+        virtcolumn = local_cc
+        vim.wo.cc = ""
+    end
+
+    vim.b.virtcolumn = virtcolumn
+    vim.w.virtcolumn = virtcolumn
 
     ---@type number[]
     local items = {}
 
-    for _, virtcolumn in ipairs(virtcolumns) do
-        if virtcolumn and virtcolumn ~= "" then
-            if vim.startswith(virtcolumn, "+") then
+    local textwidth = vim.opt.textwidth:get()
+    for _, c in ipairs(vim.split(virtcolumn, ",")) do
+        local item
+        if c and c ~= "" then
+            if vim.startswith(c, "+") then
                 if textwidth ~= 0 then
-                    table.insert(items, textwidth + tonumber(virtcolumn:sub(2)))
+                    item = textwidth + tonumber(c:sub(2))
                 end
             elseif vim.startswith(virtcolumn, "-") then
                 if textwidth ~= 0 then
-                    table.insert(items, textwidth - tonumber(virtcolumn:sub(2)))
+                    item = textwidth - tonumber(c:sub(2))
                 end
             else
-                table.insert(items, tonumber(virtcolumn))
+                item = tonumber(c)
             end
+        end
+        if item and item > 0 then
+            table.insert(items, item)
         end
     end
     table.sort(items, function(a, b)
@@ -101,17 +112,22 @@ local function refresh(args)
 end
 
 local function set_hl()
-    vim.cmd [[
-      hi clear ColorColumn
-      hi default link VirtColumn NonText
-    ]]
+    local cc_bg = api.nvim_get_hl_by_name("ColorColumn", true).background
+    if cc_bg then
+        api.nvim_set_hl(0, "VirtColumn", { fg = cc_bg, default = true })
+    else
+        vim.cmd [[hi default link VirtColumn NonText]]
+    end
 end
 set_hl()
 
 local group = api.nvim_create_augroup("virtcolumn", {})
 api.nvim_create_autocmd(
-    { "WinScrolled", "TextChanged", "TextChangedI", "BufWinEnter", "InsertLeave" },
-    { group = group, callback = refresh }
+    { "WinScrolled", "TextChanged", "TextChangedI", "BufWinEnter", "InsertLeave", "FileChangedShellPost" },
+    {
+        group = group,
+        callback = refresh,
+    }
 )
 api.nvim_create_autocmd("OptionSet", { group = group, callback = refresh, pattern = "colorcolumn" })
 api.nvim_create_autocmd("ColorScheme", { group = group, callback = set_hl })
