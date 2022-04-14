@@ -115,3 +115,5 @@ api.nvim_create_autocmd(
 )
 api.nvim_create_autocmd("OptionSet", { group = group, callback = refresh, pattern = "colorcolumn" })
 api.nvim_create_autocmd("ColorScheme", { group = group, callback = set_hl })
+
+pcall(_refresh)
