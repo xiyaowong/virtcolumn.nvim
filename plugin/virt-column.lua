@@ -131,7 +131,15 @@ api.nvim_create_autocmd({
     "InsertEnter",
     "FileChangedShellPost",
 }, { group = group, callback = refresh })
-api.nvim_create_autocmd("OptionSet", { group = group, callback = refresh, pattern = "colorcolumn" })
+api.nvim_create_autocmd("OptionSet", {
+    group = group,
+    callback = function()
+        vim.b.virtcolumn_items = nil
+        vim.w.virtcolumn_items = nil
+        _refresh()
+    end,
+    pattern = "colorcolumn",
+})
 api.nvim_create_autocmd("ColorScheme", { group = group, callback = set_hl })
 
 pcall(set_hl)
