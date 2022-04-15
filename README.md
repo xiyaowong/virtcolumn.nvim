@@ -10,6 +10,8 @@ and the original use of the way completely incompatible, and can even be conside
 
 ## Install
 
+requires nvim0.7+nightly which has `nvim_create_autocmd`
+
 Same as other normal plugins, use your favourite plugin manager to install.
 
 ## Configuration
