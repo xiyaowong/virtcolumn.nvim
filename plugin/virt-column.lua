@@ -106,7 +106,15 @@ local function refresh(args)
             textchanged_timer:stop()
             textchanged_timer:close()
         end
-        textchanged_timer = vim.defer_fn(_refresh, 500)
+        local lines_count = vim.fn.line "$"
+        local delay
+        if lines_count ~= vim.b.virtcolumn_lines_count then
+            vim.b.virtcolumn_lines_count = lines_count
+            delay = 50
+        else
+            delay = 500
+        end
+        textchanged_timer = vim.defer_fn(_refresh, delay)
     else
         _refresh()
     end
