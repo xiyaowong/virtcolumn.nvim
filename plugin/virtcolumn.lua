@@ -7,7 +7,7 @@ ffi.cdef "int curwin_col_off(void);"
 ---@diagnostic disable-next-line: undefined-field
 local curwin_col_off = ffi.C.curwin_col_off
 
-local NS = api.nvim_create_namespace "virt-column"
+local NS = api.nvim_create_namespace "virtcolumn"
 
 ---@param cc string
 ---@return number[]

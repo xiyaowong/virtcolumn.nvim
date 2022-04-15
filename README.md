@@ -1,47 +1,32 @@
-# virt-column.nvim
+# virtcolumn.nvim
 
-Display a character as the colorcolumn.
+**Display a character as the colorcolumn.**
 
-<img width="900" src="https://user-images.githubusercontent.com/12900252/143544703-d94d6e9e-75f8-407d-976e-0fd5b341d751.png" alt="Screenshot" />
+![image](https://user-images.githubusercontent.com/47070852/163523348-ad949d3f-4fc4-461f-98ee-0291af613396.png)
+
+This plugin is based on [lukas-reineke/virt-column.nvim](https://github.com/lukas-reineke/virt-column.nvim),
+then why not submit pr, but a new repository, because the content of the modification of this plugin
+and the original use of the way completely incompatible, and can even be considered two completely different plugins
 
 ## Install
 
-Use your favourite plugin manager to install.
+Same as other normal plugins, use your favourite plugin manager to install.
 
-#### Example with Packer
+## Configuration
 
-[wbthomason/packer.nvim](https://github.com/wbthomason/packer.nvim)
+This plugin is aiming for zero configuration, you just need to install and make
+sure this plugin loaded and it will automatically handle `colorcolumn`
 
-```lua
--- init.lua
-require("packer").startup(
-    function()
-        use "lukas-reineke/virt-column.nvim"
-    end
-)
-```
-
-#### Example with Plug
-
-[junegunn/vim-plug](https://github.com/junegunn/vim-plug)
-
-```vim
-" init.vim
-call plug#begin('~/.vim/plugged')
-Plug 'lukas-reineke/virt-column.nvim'
-call plug#end()
-```
-
-## Setup
-
-To configure virt-column.nvim you need to run the setup function.
+### char
 
 ```lua
-require("virt-column").setup()
+vim.g.virtcolumn_char = '▕' -- by default
 ```
 
-Please see `:help virt-column.txt`for more details and all possible values.
+### highlight
 
-## Thanks
+**`VirtColumn`**
 
-Thank you @francium for the idea.
+Highlight of virtual column character.
+
+Use `ColorColumn`s background color by default, otherwise link to `NonText`
