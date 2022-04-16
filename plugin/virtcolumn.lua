@@ -47,10 +47,10 @@ local function _refresh()
     end
 
     local items = vim.b.virtcolumn_items or vim.w.virtcolumn_items
-    local local_cc = vim.wo.cc
+    local local_cc = api.nvim_get_option_value("cc", { scope = "local" })
     if not items or local_cc ~= "" then
         items = parse_items(local_cc)
-        vim.wo.cc = ""
+        api.nvim_set_option_value("cc", "", { scope = "local" })
     end
     vim.b.virtcolumn_items = items
     vim.w.virtcolumn_items = items
