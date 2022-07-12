@@ -86,7 +86,6 @@ local function _refresh()
             if api.nvim_strwidth(line) < item then
                 api.nvim_buf_set_extmark(curbuf, NS, i + offset - 1, 0, {
                     virt_text = { { char, "VirtColumn" } },
-                    virt_text_pos = "overlay",
                     hl_mode = "combine",
                     virt_text_win_col = item - 1,
                     priority = priority,
