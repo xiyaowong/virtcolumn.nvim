@@ -19,10 +19,11 @@ Same as other normal plugins, use your favourite plugin manager to install.
 This plugin is aiming for zero configuration, you just need to install and make
 sure this plugin loaded and it will automatically handle `colorcolumn`
 
-### char
+by default
 
 ```lua
-vim.g.virtcolumn_char = '▕' -- by default
+vim.g.virtcolumn_char = '▕' -- char to display the line
+vim.g.virtcolumn_priority = 10 -- priority of extmark
 ```
 
 ### highlight

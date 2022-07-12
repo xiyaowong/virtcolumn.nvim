@@ -1,4 +1,6 @@
---- vim.g.virtcolumn_char: ▕ by default
+--- Options:
+--- vim.g.virtcolumn_char = "▕"
+--- vim.g.virtcolumn_priority = 10
 
 local api = vim.api
 local ffi = require "ffi"
@@ -76,6 +78,7 @@ local function _refresh()
     local lines = api.nvim_buf_get_lines(curbuf, offset, vim.fn.line "w$" + debounce, false)
     local tabstop = vim.opt.tabstop:get()
     local char = vim.g.virtcolumn_char or "▕"
+    local priority = vim.g.virtcolumn_priority or 10
 
     for i = 1, #lines do
         for _, item in ipairs(items) do
@@ -86,7 +89,7 @@ local function _refresh()
                     virt_text_pos = "overlay",
                     hl_mode = "combine",
                     virt_text_win_col = item - 1,
-                    priority = 0,
+                    priority = priority,
                 })
             end
         end
