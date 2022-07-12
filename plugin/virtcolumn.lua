@@ -57,6 +57,11 @@ local function _refresh()
 
     api.nvim_buf_clear_namespace(curbuf, NS, 0, -1)
 
+    local win_width = api.nvim_win_get_width(0) - curwin_col_off()
+    items = vim.tbl_filter(function(item)
+        return win_width > item
+    end, items)
+
     if #items == 0 then
         return
     end
@@ -69,14 +74,13 @@ local function _refresh()
     --                                                Avoid flickering caused by winscrolled_timer
     --                                                                    ↓↓↓↓↓↓↓↓↓↓↓
     local lines = api.nvim_buf_get_lines(curbuf, offset, vim.fn.line "w$" + debounce, false)
-    local width = api.nvim_win_get_width(0) - curwin_col_off()
     local tabstop = vim.opt.tabstop:get()
     local char = vim.g.virtcolumn_char or "▕"
 
     for i = 1, #lines do
         for _, item in ipairs(items) do
             local line = lines[i]:gsub("\t", string.rep(" ", tabstop))
-            if width > item and api.nvim_strwidth(line) < item then
+            if api.nvim_strwidth(line) < item then
                 api.nvim_buf_set_extmark(curbuf, NS, i + offset - 1, 0, {
                     virt_text = { { char, "VirtColumn" } },
                     virt_text_pos = "overlay",
