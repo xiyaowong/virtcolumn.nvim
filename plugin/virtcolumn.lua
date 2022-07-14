@@ -106,7 +106,7 @@ local function refresh(args)
             winscrolled_timer:stop()
             winscrolled_timer:close()
         end
-        winscrolled_timer = vim.defer_fn(_refresh, 150)
+        winscrolled_timer = vim.defer_fn(_refresh, 100)
     elseif event:match "TextChanged" then
         if textchanged_timer and textchanged_timer:is_active() then
             textchanged_timer:stop()
@@ -116,9 +116,9 @@ local function refresh(args)
         local delay
         if lines_count ~= vim.b.virtcolumn_lines_count then
             vim.b.virtcolumn_lines_count = lines_count
-            delay = 50
+            delay = 15
         else
-            delay = 500
+            delay = 150
         end
         textchanged_timer = vim.defer_fn(_refresh, delay)
     else
