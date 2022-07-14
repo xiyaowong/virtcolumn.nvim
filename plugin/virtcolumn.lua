@@ -2,7 +2,7 @@
 --- vim.g.virtcolumn_char = "▕"
 --- vim.g.virtcolumn_priority = 10
 
-local api = vim.api
+local api, fn = vim.api, vim.fn
 local ffi = require "ffi"
 
 ffi.cdef "int curwin_col_off(void);"
@@ -83,7 +83,7 @@ local function _refresh()
     for i = 1, #lines do
         for _, item in ipairs(items) do
             local line = lines[i]:gsub("\t", string.rep(" ", tabstop))
-            if api.nvim_strwidth(line) < item then
+            if api.nvim_strwidth(line) < item or fn.strpart(line, item - 1, 1) == " " then
                 api.nvim_buf_set_extmark(curbuf, NS, i + offset - 1, 0, {
                     virt_text = { { char, "VirtColumn" } },
                     hl_mode = "combine",
