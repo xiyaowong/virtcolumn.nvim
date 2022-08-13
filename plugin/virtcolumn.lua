@@ -6,8 +6,9 @@ local api, fn = vim.api, vim.fn
 local ffi = require('ffi')
 
 ffi.cdef('int curwin_col_off(void);')
----@diagnostic disable-next-line: undefined-field
-local curwin_col_off = ffi.C.curwin_col_off
+local function curwin_col_off()
+  return ffi.C.curwin_col_off()
+end
 
 local NS = api.nvim_create_namespace('virtcolumn')
 
@@ -49,32 +50,37 @@ local function _refresh()
   vim.b.virtcolumn_items = items
   vim.w.virtcolumn_items = items
 
-  api.nvim_buf_clear_namespace(curbuf, NS, 0, -1)
-
   local win_width = api.nvim_win_get_width(0) - curwin_col_off()
   items = vim.tbl_filter(function(item)
     return win_width > item
   end, items)
 
-  if #items == 0 then return end
+  if #items == 0 then
+    api.nvim_buf_clear_namespace(curbuf, NS, 0, -1)
+    return
+  end
 
   local debounce = math.floor(api.nvim_win_get_height(0) * 0.6)
-  local offset = vim.fn.line('w0')
+  local visible_first, visible_last = fn.line('w0'), fn.line('w$')
   -- Avoid flickering caused by winscrolled_timer
-  offset = (offset <= debounce and 1 or offset - debounce) - 1 -- convert to 0-based
+  local offset = (visible_first <= debounce and 1 or visible_first - debounce) - 1 -- convert to 0-based
 
-  --                                                Avoid flickering caused by winscrolled_timer
-  --                                                                    ↓↓↓↓↓↓↓↓↓↓↓
-  local lines = api.nvim_buf_get_lines(curbuf, offset, vim.fn.line('w$') + debounce, false)
-  local tabstop = vim.opt.tabstop:get()
+  --                                                Avoid flickering caused by timer
+  --                                                                ↓↓↓↓↓↓↓↓↓↓↓
+  local lines = api.nvim_buf_get_lines(curbuf, offset, visible_last + debounce, false)
+  local rep = string.rep(' ', vim.opt.tabstop:get())
   local char = vim.g.virtcolumn_char or '▕'
   local priority = vim.g.virtcolumn_priority or 10
 
-  for i = 1, #lines do
+  local line, lnum, strwidth
+  for idx = 1, #lines do
+    line = lines[idx]:gsub('\t', rep)
+    lnum = idx - 1 + offset
+    strwidth = api.nvim_strwidth(line)
+    api.nvim_buf_clear_namespace(curbuf, NS, lnum, lnum + 1)
     for _, item in ipairs(items) do
-      local line = lines[i]:gsub('\t', string.rep(' ', tabstop))
-      if api.nvim_strwidth(line) < item or fn.strpart(line, item - 1, 1) == ' ' then
-        api.nvim_buf_set_extmark(curbuf, NS, i + offset - 1, 0, {
+      if strwidth < item or fn.strpart(line, item - 1, 1) == ' ' then
+        api.nvim_buf_set_extmark(curbuf, NS, lnum, 0, {
           virt_text = { { char, 'VirtColumn' } },
           hl_mode = 'combine',
           virt_text_win_col = item - 1,
