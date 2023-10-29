@@ -3,14 +3,24 @@
 --- vim.g.virtcolumn_priority = 10
 
 local api, fn = vim.api, vim.fn
-local ffi = require('ffi')
-
-ffi.cdef('int curwin_col_off(void);')
-local function curwin_col_off()
-  return ffi.C.curwin_col_off()
-end
 
 local NS = api.nvim_create_namespace('virtcolumn')
+
+---@class WinContext
+---@field textoff integer
+---@field topline integer
+---@field botline integer
+---@field width integer
+---@field height integer
+---@field leftcol integer
+---@field winnr integer
+
+---@return WinContext
+local function get_win_context()
+  local info = fn.getwininfo(api.nvim_get_current_win())[1]
+  local view = fn.winsaveview()
+  return vim.tbl_extend('force', info, view)
+end
 
 ---@param cc string
 ---@return number[]
@@ -58,9 +68,12 @@ local function _refresh()
   vim.b.virtcolumn_items = items
   vim.w.virtcolumn_items = items
 
-  local win_width = api.nvim_win_get_width(0) - curwin_col_off()
+  local ctx = get_win_context()
+
+  local ll = ctx.leftcol
+  local ul = ctx.width + ctx.leftcol - ctx.textoff
   items = vim.tbl_filter(function(item)
-    return win_width > item
+    return item > ll and item < ul
   end, items)
 
   if #items == 0 then
@@ -68,18 +81,15 @@ local function _refresh()
     return
   end
 
-  local debounce = math.floor(api.nvim_win_get_height(0) * 0.6)
-  local visible_first, visible_last = fn.line('w0'), fn.line('w$')
-  -- Avoid flickering caused by winscrolled_timer
-  local offset = (visible_first <= debounce and 1 or visible_first - debounce) - 1 -- convert to 0-based
-
-  --                                                Avoid flickering caused by timer
-  --                                                                ↓↓↓↓↓↓↓↓↓↓↓
-  local lines = api.nvim_buf_get_lines(curbuf, offset, visible_last + debounce, false)
+  local extend = math.floor(ctx.height * 0.4)
+  local offset = math.max(0, ctx.topline - extend)
+  local lines = api.nvim_buf_get_lines(curbuf, offset, ctx.botline + extend, false)
   local rep = string.rep(' ', vim.opt.tabstop:get())
-  local char = vim.g.virtcolumn_char or '▕'
-  local priority = vim.g.virtcolumn_priority or 10
 
+  local virt_char = vim.g.virtcolumn_char or '▕'
+  local virt_priority = vim.g.virtcolumn_priority or 10
+
+  local leftcol = ctx.leftcol
   local line, lnum, strwidth
   for idx = 1, #lines do
     line = lines[idx]:gsub('\t', rep)
@@ -89,10 +99,10 @@ local function _refresh()
     for _, item in ipairs(items) do
       if strwidth < item or is_empty_at_col(line, item - 1) then
         api.nvim_buf_set_extmark(curbuf, NS, lnum, 0, {
-          virt_text = { { char, 'VirtColumn' } },
+          virt_text = { { virt_char, 'VirtColumn' } },
           hl_mode = 'combine',
-          virt_text_win_col = item - 1,
-          priority = priority,
+          virt_text_win_col = item - 1 - leftcol,
+          priority = virt_priority,
         })
       end
     end
@@ -110,19 +120,19 @@ local function refresh(args)
       winscrolled_timer:stop()
       winscrolled_timer:close()
     end
-    winscrolled_timer = vim.defer_fn(_refresh, 100)
+    winscrolled_timer = vim.defer_fn(_refresh, 50)
   elseif event:match('TextChanged') then
     if textchanged_timer and textchanged_timer:is_active() then
       textchanged_timer:stop()
       textchanged_timer:close()
     end
-    local lines_count = vim.fn.line('$')
+    local lines_count = api.nvim_buf_line_count(0)
     local delay
     if lines_count ~= vim.b.virtcolumn_lines_count then
       vim.b.virtcolumn_lines_count = lines_count
-      delay = 15
+      delay = 10
     else
-      delay = 150
+      delay = 50
     end
     textchanged_timer = vim.defer_fn(_refresh, delay)
   else
@@ -142,9 +152,10 @@ end
 local group = api.nvim_create_augroup('virtcolumn', {})
 api.nvim_create_autocmd({
   'WinScrolled',
+  'WinResized',
   'TextChanged',
   'TextChangedI',
-  'BufWinEnter',
+  'WinEnter',
   'InsertLeave',
   'InsertEnter',
   'FileChangedShellPost',
