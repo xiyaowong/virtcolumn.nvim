@@ -37,6 +37,14 @@ local function parse_items(cc)
   return items
 end
 
+---@param line string
+---@param col integer byte 0-indexed
+---@return boolean
+local function is_empty_at_col(line, col)
+  local ok, char = pcall(fn.strpart, line, col, 1)
+  return ok and char == ' '
+end
+
 local function _refresh()
   local curbuf = api.nvim_get_current_buf()
   if not api.nvim_buf_is_loaded(curbuf) then return end
@@ -79,7 +87,7 @@ local function _refresh()
     strwidth = api.nvim_strwidth(line)
     api.nvim_buf_clear_namespace(curbuf, NS, lnum, lnum + 1)
     for _, item in ipairs(items) do
-      if strwidth < item or fn.strpart(line, item - 1, 1) == ' ' then
+      if strwidth < item or is_empty_at_col(line, item - 1) then
         api.nvim_buf_set_extmark(curbuf, NS, lnum, 0, {
           virt_text = { { char, 'VirtColumn' } },
           hl_mode = 'combine',
