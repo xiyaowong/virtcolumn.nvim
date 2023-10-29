@@ -18,6 +18,7 @@ Same as other normal plugins, use your favourite plugin manager to install.
 
 This plugin is aiming for zero configuration, you just need to install and make
 sure this plugin loaded and it will automatically handle `colorcolumn`
+e.g. `set cc=80` `au FileType gitcommit setl cc=50,72`
 
 by default
 
