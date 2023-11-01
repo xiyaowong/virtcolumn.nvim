@@ -120,7 +120,7 @@ local function refresh(args)
       winscrolled_timer:stop()
       winscrolled_timer:close()
     end
-    winscrolled_timer = vim.defer_fn(_refresh, 50)
+    winscrolled_timer = vim.defer_fn(_refresh, 20)
   elseif event:match('TextChanged') then
     if textchanged_timer and textchanged_timer:is_active() then
       textchanged_timer:stop()
@@ -132,7 +132,7 @@ local function refresh(args)
       vim.b.virtcolumn_lines_count = lines_count
       delay = 10
     else
-      delay = 50
+      delay = 20
     end
     textchanged_timer = vim.defer_fn(_refresh, delay)
   else
@@ -156,6 +156,8 @@ api.nvim_create_autocmd({
   'TextChanged',
   'TextChangedI',
   'WinEnter',
+  'BufWinEnter',
+  'BufRead',
   'InsertLeave',
   'InsertEnter',
   'FileChangedShellPost',
