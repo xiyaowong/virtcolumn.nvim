@@ -70,11 +70,12 @@ local function _refresh()
 
   local ctx = get_win_context()
 
-  local ll = ctx.leftcol
-  local ul = ctx.width + ctx.leftcol - ctx.textoff
-  items = vim.tbl_filter(function(item)
-    return item > ll and item < ul
-  end, items)
+  -- TODO: Find time to fix the bug that clears the displayed content when opening the sidebar(window)
+  -- local ll = ctx.leftcol
+  -- local ul = ctx.width + ctx.leftcol - ctx.textoff
+  -- items = vim.tbl_filter(function(item)
+  --   return item > ll and item < ul
+  -- end, items)
 
   if #items == 0 then
     api.nvim_buf_clear_namespace(curbuf, NS, 0, -1)
