@@ -152,6 +152,7 @@ end
 
 local group = api.nvim_create_augroup('virtcolumn', {})
 api.nvim_create_autocmd({
+  'FileType',
   'WinScrolled',
   'WinResized',
   'TextChanged',
