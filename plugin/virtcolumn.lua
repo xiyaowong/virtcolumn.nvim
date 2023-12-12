@@ -25,7 +25,7 @@ end
 ---@param cc string
 ---@return number[]
 local function parse_items(cc)
-  local textwidth = vim.o.textwidth
+  local textwidth = vim.bo.textwidth
   ---@type number[]
   local items = {}
   for _, c in ipairs(vim.split(cc, ',')) do
@@ -63,6 +63,8 @@ local function _refresh()
   local local_cc = api.nvim_get_option_value('cc', { scope = 'local' })
   if not items or local_cc ~= '' then
     items = parse_items(local_cc)
+    vim.b.virtcolumn_last_cc = local_cc
+    vim.w.virtcolumn_last_cc = local_cc
     api.nvim_set_option_value('cc', '', { scope = 'local' })
   end
   vim.b.virtcolumn_items = items
@@ -166,12 +168,18 @@ api.nvim_create_autocmd({
 }, { group = group, callback = refresh })
 api.nvim_create_autocmd('OptionSet', {
   group = group,
-  callback = function()
+  callback = function(ev)
+    if ev.match == 'textwidth' then
+      local curr_cc = api.nvim_get_option_value('cc', { scope = 'local' })
+      local last_cc = vim.b.virtcolumn_last_cc or vim.w.virtcolumn_last_cc
+      local cc = curr_cc ~= '' and curr_cc or last_cc
+      if cc then api.nvim_set_option_value('cc', cc, { scope = 'local' }) end
+    end
     vim.b.virtcolumn_items = nil
     vim.w.virtcolumn_items = nil
     _refresh()
   end,
-  pattern = 'colorcolumn',
+  pattern = 'colorcolumn,textwidth',
 })
 api.nvim_create_autocmd('ColorScheme', { group = group, callback = set_hl })
 
