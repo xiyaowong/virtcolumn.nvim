@@ -55,7 +55,45 @@ local function is_empty_at_col(line, col)
   return ok and char == ' '
 end
 
+local function get_buf_lines(buf, start, end_)
+  local rep = string.rep(' ', vim.opt.tabstop:get())
+  local lines = api.nvim_buf_get_lines(buf, start, end_, false)
+  local marks = vim.tbl_filter(
+    function(v)
+      return v[4].virt_text_pos == 'inline'
+    end,
+    api.nvim_buf_get_extmarks(buf, -1, { start, 0 }, { end_, 0 }, {
+      details = true,
+      type = 'virt_text',
+    })
+  )
+
+  local lines_offset = {}
+  local row, col, offset, line, line_idx, text
+  for _, mark in ipairs(marks) do
+    row = mark[2]
+    line_idx = row - start + 1
+    line = lines[line_idx]
+    if line then
+      line = line:gsub('\t', rep)
+      offset = lines_offset[row] or 0
+      col = mark[3] + offset
+      text = table.concat(
+        vim.tbl_map(function(v)
+          return v[1]
+        end, mark[4].virt_text),
+        ''
+      )
+      line = line:sub(1, col) .. text .. line:sub(col + 1)
+      lines[line_idx] = line
+      lines_offset[row] = offset + #text
+    end
+  end
+  return lines
+end
+
 local function _refresh()
+  -- local start = vim.loop.hrtime()
   local curbuf = api.nvim_get_current_buf()
   if not api.nvim_buf_is_loaded(curbuf) then return end
 
@@ -86,21 +124,19 @@ local function _refresh()
 
   local extend = math.floor(ctx.height * 0.4)
   local offset = math.max(0, ctx.topline - extend)
-  local lines = api.nvim_buf_get_lines(curbuf, offset, ctx.botline + extend, false)
-  local rep = string.rep(' ', vim.opt.tabstop:get())
+  local lines = get_buf_lines(curbuf, offset, ctx.botline + extend)
 
   local virt_char = vim.g.virtcolumn_char or '▕'
   local virt_priority = vim.g.virtcolumn_priority or 10
 
   local leftcol = ctx.leftcol
-  local line, lnum, strwidth
+  local line, lnum
   for idx = 1, #lines do
-    line = lines[idx]:gsub('\t', rep)
+    line = lines[idx]
     lnum = idx - 1 + offset
-    strwidth = api.nvim_strwidth(line)
     api.nvim_buf_clear_namespace(curbuf, NS, lnum, lnum + 1)
     for _, item in ipairs(items) do
-      if strwidth < item or is_empty_at_col(line, item - 1) then
+      if #line < item or is_empty_at_col(line, item - 1) then
         api.nvim_buf_set_extmark(curbuf, NS, lnum, 0, {
           virt_text = { { virt_char, 'VirtColumn' } },
           hl_mode = 'combine',
@@ -110,6 +146,7 @@ local function _refresh()
       end
     end
   end
+  -- print((vim.loop.hrtime() - start) / 1e6, 'ms')
 end
 
 -- Avoid unnecessary refreshing as much as possible lcoallfdafffadf
@@ -144,6 +181,7 @@ local function refresh(args)
 end
 
 local function set_hl()
+  ---@diagnostic disable-next-line: deprecated
   local cc_bg = api.nvim_get_hl_by_name('ColorColumn', true).background
   if cc_bg then
     api.nvim_set_hl(0, 'VirtColumn', { fg = cc_bg, default = true })
@@ -154,6 +192,7 @@ end
 
 local group = api.nvim_create_augroup('virtcolumn', {})
 api.nvim_create_autocmd({
+  'CursorHold',
   'FileType',
   'WinScrolled',
   'WinResized',
