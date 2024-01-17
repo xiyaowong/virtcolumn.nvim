@@ -50,46 +50,9 @@ end
 ---@param line string
 ---@param col integer byte 0-indexed
 ---@return boolean
-local function is_empty_at_col(line, col)
-  local ok, char = pcall(fn.strpart, line, col, 1)
-  return ok and char == ' '
-end
-
-local function get_buf_lines(buf, start, end_)
-  local rep = string.rep(' ', vim.opt.tabstop:get())
-  local lines = api.nvim_buf_get_lines(buf, start, end_, false)
-  local marks = vim.tbl_filter(
-    function(v)
-      return v[4].virt_text_pos == 'inline'
-    end,
-    api.nvim_buf_get_extmarks(buf, -1, { start, 0 }, { end_, 0 }, {
-      details = true,
-      type = 'virt_text',
-    })
-  )
-
-  local lines_offset = {}
-  local row, col, offset, line, line_idx, text
-  for _, mark in ipairs(marks) do
-    row = mark[2]
-    line_idx = row - start + 1
-    line = lines[line_idx]
-    if line then
-      line = line:gsub('\t', rep)
-      offset = lines_offset[row] or 0
-      col = mark[3] + offset
-      text = table.concat(
-        vim.tbl_map(function(v)
-          return v[1]
-        end, mark[4].virt_text),
-        ''
-      )
-      line = line:sub(1, col) .. text .. line:sub(col + 1)
-      lines[line_idx] = line
-      lines_offset[row] = offset + #text
-    end
-  end
-  return lines
+local function is_empty_at_col(win, line, lnum, col)
+  local real_col = fn.virtcol2col(win, lnum + 1, col + 1)
+  return line:sub(real_col, real_col) == ' '
 end
 
 local function _refresh()
@@ -124,7 +87,7 @@ local function _refresh()
 
   local extend = math.floor(ctx.height * 0.4)
   local offset = math.max(0, ctx.topline - extend)
-  local lines = get_buf_lines(curbuf, offset, ctx.botline + extend)
+  local lines = api.nvim_buf_get_lines(curbuf, offset, ctx.botline + extend, false)
 
   local virt_char = vim.g.virtcolumn_char or '▕'
   local virt_priority = vim.g.virtcolumn_priority or 10
@@ -136,7 +99,7 @@ local function _refresh()
     lnum = idx - 1 + offset
     api.nvim_buf_clear_namespace(curbuf, NS, lnum, lnum + 1)
     for _, item in ipairs(items) do
-      if #line < item or is_empty_at_col(line, item - 1) then
+      if fn.strdisplaywidth(line) < item or is_empty_at_col(ctx.winnr, line, lnum, item - 1) then
         api.nvim_buf_set_extmark(curbuf, NS, lnum, 0, {
           virt_text = { { virt_char, 'VirtColumn' } },
           hl_mode = 'combine',
